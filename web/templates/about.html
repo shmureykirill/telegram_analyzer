@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}О проекте — TG Analyzer{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h4 class="mb-0"><i class="bi bi-file-earmark-text me-2 text-info"></i>Архитектура и методология</h4>
+</div>
+
+<!-- Stats strip -->
+<div class="row g-3 mb-4">
+  {% for label, val, icon in [
+    ('Каналов', stats.channel_count, 'broadcast'),
+    ('Сообщений', stats.message_count, 'chat-left-text'),
+    ('Активных тем', stats.topic_count, 'tags'),
+    ('Ср. просмотры', stats.avg_views, 'eye'),
+  ] %}
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="value">{{ val }}</div>
+      <div class="label"><i class="bi bi-{{ icon }} me-1"></i>{{ label }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+
+    <!-- Architecture -->
+    <div class="card mb-3">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">АРХИТЕКТУРА</small></div>
+      <div class="card-body small text-muted">
+        <p>Приложение построено по модульному принципу:</p>
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Модуль</th><th>Технология</th><th>Назначение</th></tr></thead>
+          <tbody>
+            <tr><td><code>scraper/</code></td><td>requests, BeautifulSoup</td><td>Парсинг t.me/s/</td></tr>
+            <tr><td><code>database/</code></td><td>SQLite (WAL-mode)</td><td>Хранение сообщений, тем, прогнозов</td></tr>
+            <tr><td><code>nlp/</code></td><td>NLTK, regex</td><td>Токенизация, стоп-слова, n-граммы</td></tr>
+            <tr><td><code>prediction/</code></td><td>Pure Python</td><td>Временные ряды, прогноз трендов</td></tr>
+            <tr><td><code>web/</code></td><td>Flask, Jinja2, Bootstrap</td><td>Веб-интерфейс</td></tr>
+            <tr><td><code>APScheduler</code></td><td>BackgroundScheduler</td><td>Сбор каждые 30 мин</td></tr>
+            <tr><td>Экспорт</td><td>pandas, reportlab, openpyxl</td><td>CSV / PDF / Excel</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Data collection -->
+    <div class="card mb-3">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">СБОР ДАННЫХ</small></div>
+      <div class="card-body small text-muted">
+        <p>Данные берутся <strong>только с публичных страниц</strong>
+           <code>https://t.me/s/&lt;username&gt;</code> — без входа в аккаунт и без MTProto.</p>
+        <p>Пагинация истории реализована через параметр <code>?before=&lt;post_id&gt;</code>,
+           что позволяет листать архив канала до 4 000+ сообщений.</p>
+        <p>Между запросами выдерживается случайная пауза 1–3 с, обрабатывается HTTP 429.</p>
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Метрика</th><th>Доступна</th></tr></thead>
+          <tbody>
+            <tr><td>Текст сообщения</td><td>✅ Да</td></tr>
+            <tr><td>Дата/время</td><td>✅ Да</td></tr>
+            <tr><td>Просмотры</td><td>✅ Да</td></tr>
+            <tr><td>Реакции (эмодзи)</td><td>✅ Да (если включены)</td></tr>
+            <tr><td>Медиа (фото/видео)</td><td>✅ Количество (не скачиваются)</td></tr>
+            <tr><td>Репосты/пересылки</td><td>❌ Нет в публичном HTML</td></tr>
+            <tr><td>Личность автора</td><td>❌ Только имя канала</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  <div class="col-lg-6">
+
+    <!-- NLP -->
+    <div class="card mb-3">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">АНАЛИЗ ТЕКСТА (NLP)</small></div>
+      <div class="card-body small text-muted">
+        <ol class="mb-2">
+          <li><strong>Очистка:</strong> удаление URL, @упоминаний, #хэштегов, пунктуации, цифр</li>
+          <li><strong>Токенизация:</strong> split по пробелам после очистки</li>
+          <li><strong>Стоп-слова:</strong> русские + английские (NLTK) + базовые белорусские</li>
+          <li><strong>Ключевые слова:</strong> топ-50 унаграмм по частоте</li>
+          <li><strong>N-граммы:</strong> биграммы и триграммы с топ-20/10</li>
+          <li><strong>Классификация тем:</strong> словарный метод (topics.json) — если ≥2 ключевых слова темы встречаются в тексте, тема назначается с весом = кол-ву совпадений</li>
+        </ol>
+        <p class="mb-0 text-muted" style="font-size:.8rem">
+          Словарь тем редактируется в <code>config/topics.json</code> без изменения кода.
+        </p>
+      </div>
+    </div>
+
+    <!-- Trend prediction -->
+    <div class="card mb-3">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">ПРОГНОЗ ТРЕНДОВ</small></div>
+      <div class="card-body small text-muted">
+        <p>Алгоритм сравнивает текущий интервал (6 ч) со скользящим средним за предыдущие 4 интервала:</p>
+        <table class="table table-sm mb-2">
+          <thead><tr><th>Сигнал</th><th>Порог</th><th>Вывод</th></tr></thead>
+          <tbody>
+            <tr><td>Рост упоминаний</td><td>&gt;150%</td><td>📈 Рост</td></tr>
+            <tr><td>Рост ср. просмотров</td><td>&gt;200%</td><td>📈 Рост</td></tr>
+            <tr><td>Активность инфлюенсеров</td><td>≥1 канала с ср.просм ≥5 000</td><td>📈 Рост</td></tr>
+            <tr><td>Рост реакций на пост</td><td>&gt;50%</td><td>Усиливающий сигнал</td></tr>
+            <tr><td>Падение упоминаний</td><td>&gt;50%</td><td>📉 Спад</td></tr>
+          </tbody>
+        </table>
+        <p class="mb-0">Горизонт прогноза — <strong>ближайшие 24 часа</strong>.
+           Все прогнозы сохраняются в БД с временной меткой для истории.</p>
+      </div>
+    </div>
+
+    <!-- Limitations -->
+    <div class="card">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">ОГРАНИЧЕНИЯ ПРОТОТИПА</small></div>
+      <div class="card-body small text-muted">
+        <ul class="mb-0">
+          <li>Только публичные каналы — приватные группы недоступны</li>
+          <li>Профили интересов — на уровне каналов, не отдельных пользователей</li>
+          <li>Репосты недоступны в публичном HTML (заглушка = 0)</li>
+          <li>Тематика определяется словарём, ML-модели не используются</li>
+          <li>Прогноз на основе простых порогов, не статистических моделей</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

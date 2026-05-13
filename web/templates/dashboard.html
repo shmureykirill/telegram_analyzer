@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Дашборд — TG Analyzer{% endblock %}
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <h4 class="mb-0"><i class="bi bi-speedometer2 me-2 text-info"></i>Дашборд</h4>
+  <a href="/collect/all" class="btn btn-primary btn-sm">
+    <i class="bi bi-arrow-repeat me-1"></i>Запустить сбор
+  </a>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="value">{{ channels|length }}</div>
+      <div class="label"><i class="bi bi-broadcast me-1"></i>Каналов</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="value">{{ msg_count }}</div>
+      <div class="label"><i class="bi bi-chat-left-text me-1"></i>Сообщений</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="value">{{ topic_count }}</div>
+      <div class="label"><i class="bi bi-tags me-1"></i>Тем</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="value" style="color:var(--success)">{{ sentiment_pos }}</div>
+      <div class="label">😊 Позитивных</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="value" style="color:var(--danger)">{{ sentiment_neg }}</div>
+      <div class="label">😠 Негативных</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="value" style="font-size:.85rem;padding-top:.4rem">{{ last_update or '—' }}</div>
+      <div class="label"><i class="bi bi-clock me-1"></i>Обновлено</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Chart -->
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header py-2 px-3"><small class="text-muted fw-semibold">АКТИВНОСТЬ ПО ТЕМАМ (7 ДНЕЙ)</small></div>
+      <div class="card-body text-center">
+        {% if bar_chart %}
+          <img src="data:image/png;base64,{{ bar_chart }}" class="img-fluid" style="border-radius:8px"/>
+        {% else %}
+          <div class="py-5 text-muted"><i class="bi bi-bar-chart fs-1"></i><br>Нет данных. Запустите сбор.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Latest trends -->
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
+        <small class="text-muted fw-semibold">ПОСЛЕДНИЕ ТРЕНДЫ</small>
+        <a href="/trends" class="btn btn-outline-secondary btn-sm py-0">Все</a>
+      </div>
+      <div class="card-body p-3">
+        {% if predictions %}
+          {% for p in predictions %}
+          {% set dir = p.direction %}
+          <div class="trend-card {{ dir }} mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">{{ p.topic }}</span>
+              {% if dir=='growth' %}<span class="badge badge-growth">📈 Рост</span>
+              {% elif dir=='decline' %}<span class="badge badge-decline">📉 Спад</span>
+              {% else %}<span class="badge badge-stable">➡️ Стабильно</span>{% endif %}
+            </div>
+            {% set pos=p.sentiment_pos_pct or 0 %}{% set neg=p.sentiment_neg_pct or 0 %}
+            <div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-top:6px" title="{{ pos }}%+ / {{ neg }}%−">
+              <div style="width:{{ pos }}%;background:var(--success)"></div>
+              <div style="width:{{ neg }}%;background:var(--danger)"></div>
+              <div style="width:{{ [0,100-pos-neg]|max }}%;background:var(--bg3)"></div>
+            </div>
+            {% if p.ai_reason %}
+            <div class="text-muted small mt-1" style="font-size:.72rem">
+              <i class="bi bi-stars me-1" style="color:var(--accent)"></i>{{ p.ai_reason[:80] }}{% if p.ai_reason|length>80 %}…{% endif %}
+            </div>
+            {% else %}
+            <div class="text-muted small mt-1" style="font-size:.72rem">{{ p.reason[:80] }}{% if p.reason|length>80 %}…{% endif %}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-muted text-center py-4"><i class="bi bi-graph-up fs-2"></i><br>Запустите сбор</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Channels table -->
+<div class="card mt-3">
+  <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
+    <small class="text-muted fw-semibold">КАНАЛЫ</small>
+    <a href="/channels" class="btn btn-outline-secondary btn-sm py-0">Управление</a>
+  </div>
+  <div class="card-body p-0">
+    {% if channels %}
+    <table class="table mb-0">
+      <thead><tr><th>Username</th><th>Название</th><th>Тип</th><th>Добавлен</th></tr></thead>
+      <tbody>
+        {% for ch in channels %}
+        <tr>
+          <td><a href="https://t.me/{{ ch.username }}" target="_blank" class="text-info">@{{ ch.username }}</a></td>
+          <td>{{ ch.title }}</td>
+          <td><span class="badge bg-secondary">{{ ch.type }}</span></td>
+          <td class="text-muted small">{{ ch.added_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-4 text-muted"><i class="bi bi-broadcast fs-2"></i><br>Каналы не добавлены</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

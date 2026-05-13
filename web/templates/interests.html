@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Интересы аудитории — TG Analyzer{% endblock %}
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <h4 class="mb-0"><i class="bi bi-people me-2 text-info"></i>Интересы аудитории</h4>
+  <form method="GET" class="d-flex gap-2">
+    <select class="form-select form-select-sm" name="period" onchange="this.form.submit()">
+      {% for val, label in [('1d','1 день'),('3d','3 дня'),('7d','7 дней'),('30d','30 дней')] %}
+      <option value="{{ val }}" {% if period==val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body text-muted small">
+    <i class="bi bi-info-circle me-1 text-info"></i>
+    <strong>Примечание:</strong> публичный веб-просмотр <code>t.me/s/</code> не раскрывает
+    личности отдельных пользователей — только имя канала-отправителя.
+    Поэтому профили интересов строятся на уровне <strong>каналов</strong>, а не отдельных людей.
+    Для пользовательских профилей необходим аутентифицированный доступ через MTProto API.
+  </div>
+</div>
+
+<!-- Influence ranking -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
+        <small class="fw-semibold text-muted">РЕЙТИНГ КАНАЛОВ ПО ОХВАТУ</small>
+        <span class="badge" style="background:rgba(56,189,248,.15);color:var(--accent)">
+          ≥5 000 просм. = инфлюенсер
+        </span>
+      </div>
+      {% if ranking %}
+      <table class="table mb-0">
+        <thead><tr><th>#</th><th>Канал</th><th>Ср. просмотры</th><th>Сообщений</th><th>Статус</th></tr></thead>
+        <tbody>
+          {% for i, ch in enumerate(ranking) %}
+          <tr>
+            <td class="text-muted">{{ i+1 }}</td>
+            <td>
+              <a href="https://t.me/{{ ch.username }}" target="_blank" class="text-info text-decoration-none">
+                @{{ ch.username }}
+              </a>
+              {% if ch.title and ch.title != ch.username %}
+              <div class="text-muted" style="font-size:.75rem">{{ ch.title }}</div>
+              {% endif %}
+            </td>
+            <td class="fw-semibold" style="color:var(--accent)">
+              {{ "{:,.0f}".format(ch.avg_views or 0) }}
+            </td>
+            <td class="text-muted">{{ ch.msg_count or 0 }}</td>
+            <td>
+              {% if (ch.avg_views or 0) >= 5000 %}
+                <span class="badge" style="background:rgba(251,191,36,.15);color:var(--warn)">
+                  ⭐ Инфлюенсер
+                </span>
+              {% else %}
+                <span class="badge badge-stable">Обычный</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="card-body text-center text-muted py-4">
+        <i class="bi bi-broadcast fs-2"></i><br>Нет данных
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Topic profiles per channel -->
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header py-2 px-3">
+        <small class="fw-semibold text-muted">ТЕМАТИЧЕСКИЙ ПРОФИЛЬ КАНАЛОВ</small>
+      </div>
+      <div class="card-body p-3">
+        {% if by_channel %}
+          {% for username, data in by_channel.items() %}
+          <div class="mb-3">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <a href="https://t.me/{{ username }}" target="_blank"
+                 class="text-info text-decoration-none fw-semibold">@{{ username }}</a>
+              {% if data.title and data.title != username %}
+                <span class="text-muted small">{{ data.title }}</span>
+              {% endif %}
+            </div>
+            <div>
+              {% for t in data.topics %}
+              <span class="kw-chip">
+                {{ t.topic }}
+                <span style="opacity:.6">{{ t.msgs }} сообщ.</span>
+              </span>
+              {% endfor %}
+            </div>
+          </div>
+          {% if not loop.last %}<hr style="border-color:var(--bg3);margin:.75rem 0">{% endif %}
+          {% endfor %}
+        {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-tags fs-2"></i><br>Нет тематических данных.<br>
+            <a href="/collect/all" class="text-info">Запустите сбор</a>.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

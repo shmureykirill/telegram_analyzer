@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Экспорт — TG Analyzer{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h4 class="mb-0"><i class="bi bi-download me-2 text-info"></i>Экспорт данных</h4>
+</div>
+
+<div class="row g-3">
+  <!-- CSV -->
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">ТЕМЫ И КЛЮЧЕВЫЕ СЛОВА</small></div>
+      <div class="card-body d-flex flex-column">
+        <p class="text-muted small">CSV-файл с частотами тем и топ-50 ключевых слов за выбранный период.</p>
+        <form method="GET" action="/export/csv" class="mt-auto">
+          <div class="mb-2">
+            <select class="form-select form-select-sm" name="period">
+              <option value="1d">1 день</option>
+              <option value="3d">3 дня</option>
+              <option value="7d" selected>7 дней</option>
+              <option value="30d">30 дней</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-filetype-csv me-1"></i>Скачать CSV
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF -->
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">ТРЕНДЫ (PDF)</small></div>
+      <div class="card-body d-flex flex-column">
+        <p class="text-muted small">PDF-отчёт с текущими прогнозами трендов, направлением и обоснованием.</p>
+        <a href="/export/pdf" class="btn btn-primary mt-auto">
+          <i class="bi bi-filetype-pdf me-1"></i>Скачать PDF
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Excel -->
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">СООБЩЕНИЯ (EXCEL)</small></div>
+      <div class="card-body d-flex flex-column">
+        <p class="text-muted small">Excel-дамп всех сообщений с текстом, просмотрами и реакциями.</p>
+        <form method="GET" action="/export/excel" class="mt-auto">
+          <div class="mb-2">
+            <select class="form-select form-select-sm" name="period">
+              <option value="1d">1 день</option>
+              <option value="3d">3 дня</option>
+              <option value="7d" selected>7 дней</option>
+              <option value="30d">30 дней</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-file-earmark-excel me-1"></i>Скачать Excel
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-body text-muted small">
+    <i class="bi bi-info-circle me-1 text-info"></i>
+    Все экспортированные файлы сохраняются в папку <code>exports/</code> внутри проекта и доступны для скачивания.
+  </div>
+</div>
+{% endblock %}

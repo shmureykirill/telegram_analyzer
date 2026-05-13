@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}История @{{ channel.username }} — TG Analyzer{% endblock %}
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <h4 class="mb-0">
+    <i class="bi bi-clock-history me-2 text-info"></i>
+    Сбор истории — <span class="text-info">@{{ channel.username }}</span>
+  </h4>
+  <a href="/channels" class="btn btn-outline-secondary btn-sm">← Назад</a>
+</div>
+
+<!-- Current stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="value">{{ msg_count }}</div>
+      <div class="label">Сообщений в БД</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="value">{{ min_post_id or '—' }}</div>
+      <div class="label">Самый старый post_id</div>
+    </div>
+  </div>
+</div>
+
+<!-- Explanation -->
+<div class="card mb-4">
+  <div class="card-body text-muted small">
+    <i class="bi bi-info-circle me-1 text-info"></i>
+    Telegram показывает ~20 сообщений на одну страницу через
+    <code>t.me/s/{{ channel.username }}?before=&lt;id&gt;</code>.
+    Каждые 20 страниц = ~400 сообщений. Между запросами — пауза 1–3 сек.
+    Уже сохранённые сообщения пропускаются автоматически.
+  </div>
+</div>
+
+<!-- Start form -->
+<div class="card mb-4" id="start-card">
+  <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">НАСТРОЙКИ СБОРА</small></div>
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small text-muted">Глубина (страниц × ~20 сообщений)</label>
+        <select class="form-select" id="max-pages">
+          <option value="5">5 страниц (~100 сообщений)</option>
+          <option value="10">10 страниц (~200 сообщений)</option>
+          <option value="20" selected>20 страниц (~400 сообщений)</option>
+          <option value="50">50 страниц (~1 000 сообщений)</option>
+          <option value="100">100 страниц (~2 000 сообщений)</option>
+          <option value="200">200 страниц (~4 000 сообщений)</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <button class="btn btn-primary w-100" id="start-btn" onclick="startScrape()">
+          <i class="bi bi-play-fill me-1"></i>Начать сбор истории
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Progress -->
+<div class="card d-none" id="progress-card">
+  <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">ПРОГРЕСС</small></div>
+  <div class="card-body">
+    <div class="d-flex justify-content-between mb-1">
+      <span class="text-muted small" id="progress-label">Подключение…</span>
+      <span class="text-info small fw-semibold" id="progress-stats"></span>
+    </div>
+    <div class="progress mb-3" style="height:10px;background:var(--bg3);border-radius:5px">
+      <div class="progress-bar bg-info progress-bar-striped progress-bar-animated"
+           id="progress-bar" role="progressbar" style="width:5%"></div>
+    </div>
+    <div id="log-box" style="background:var(--bg);border:1px solid var(--bg3);border-radius:8px;
+         padding:.75rem;font-family:monospace;font-size:.78rem;max-height:200px;overflow-y:auto;
+         color:var(--muted)">
+    </div>
+  </div>
+</div>
+
+<!-- Done banner -->
+<div class="card d-none border-success" id="done-card" style="border-color:var(--success)!important">
+  <div class="card-body text-center py-4">
+    <div style="font-size:2rem">✅</div>
+    <h5 class="mt-2" style="color:var(--success)">Сбор завершён!</h5>
+    <p class="text-muted" id="done-msg"></p>
+    <div class="d-flex justify-content-center gap-2 mt-3">
+      <a href="/topics" class="btn btn-primary"><i class="bi bi-tags me-1"></i>Посмотреть темы</a>
+      <a href="/trends" class="btn btn-outline-secondary"><i class="bi bi-graph-up-arrow me-1"></i>Тренды</a>
+      <a href="/channels/history/{{ channel.username }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-repeat me-1"></i>Собрать ещё глубже
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Error banner -->
+<div class="card d-none" id="error-card" style="border-color:var(--danger)!important">
+  <div class="card-body text-center py-4">
+    <div style="font-size:2rem">❌</div>
+    <h5 class="mt-2 text-danger">Ошибка</h5>
+    <p class="text-muted" id="error-msg"></p>
+    <a href="/channels/history/{{ channel.username }}" class="btn btn-outline-danger mt-2">Попробовать снова</a>
+  </div>
+</div>
+
+<script>
+let evtSource = null;
+
+function log(msg) {
+  const box = document.getElementById('log-box');
+  box.innerHTML += `<div>${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function startScrape() {
+  const maxPages = document.getElementById('max-pages').value;
+  document.getElementById('start-card').classList.add('d-none');
+  document.getElementById('progress-card').classList.remove('d-none');
+
+  const formData = new FormData();
+  formData.append('max_pages', maxPages);
+
+  fetch('/channels/history/{{ channel.username }}/start', {
+    method: 'POST',
+    body: formData
+  }).then(r => r.json()).then(data => {
+    if (data.status === 'started') {
+      log('▶ Сбор запущен. Глубина: ' + maxPages + ' страниц…');
+      listenProgress();
+    } else {
+      showError(data.error || 'Ошибка запуска');
+    }
+  }).catch(e => showError(e.toString()));
+}
+
+function listenProgress() {
+  evtSource = new EventSource('/channels/history/{{ channel.username }}/progress');
+  let lastPage = 0;
+
+  evtSource.onmessage = function(e) {
+    const d = JSON.parse(e.data);
+    const maxPages = parseInt(document.getElementById('max-pages')?.value || 20);
+
+    const pct = d.done ? 100 : Math.min(5 + (d.page / (maxPages || 20)) * 90, 95);
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-stats').textContent =
+      `Страница ${d.page} · Новых: ${d.saved}`;
+
+    if (d.page > lastPage) {
+      log(`📄 Страница ${d.page} — собрано новых: ${d.saved}`);
+      lastPage = d.page;
+    }
+
+    if (d.error) {
+      showError(d.error);
+      evtSource.close();
+      return;
+    }
+
+    if (d.done) {
+      evtSource.close();
+      document.getElementById('progress-card').classList.add('d-none');
+      document.getElementById('done-card').classList.remove('d-none');
+      document.getElementById('done-msg').textContent =
+        `Сохранено ${d.saved} новых сообщений. Темы и тренды обновлены.`;
+    }
+  };
+
+  evtSource.onerror = function() {
+    showError('Соединение прервано. Обновите страницу.');
+    evtSource.close();
+  };
+}
+
+function showError(msg) {
+  document.getElementById('progress-card').classList.add('d-none');
+  document.getElementById('error-card').classList.remove('d-none');
+  document.getElementById('error-msg').textContent = msg;
+}
+</script>
+{% endblock %}

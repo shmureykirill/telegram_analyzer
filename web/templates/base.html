@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{% block title %}TG Analyzer{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--bg4:#475569;
+      --accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;
+      --text:#e2e8f0;--muted:#94a3b8;--muted2:#64748b;
+      --success:#4ade80;--danger:#f87171;--warn:#fbbf24;--info:#38bdf8;
+    }
+    *{box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+    /* Navbar */
+    .navbar{background:var(--bg2)!important;border-bottom:1px solid var(--bg3);padding:.6rem 1rem}
+    .navbar-brand{color:var(--accent)!important;font-weight:700;font-size:1.15rem;letter-spacing:.02em}
+    .nav-mode-badge{font-size:.7rem;padding:.2rem .5rem;border-radius:20px;border:1px solid;margin-left:.5rem}
+    /* Sidebar */
+    .sidebar{background:var(--bg2);border-right:1px solid var(--bg3);min-height:calc(100vh - 54px);padding:1.25rem .5rem;width:210px}
+    .sidebar .nav-link{border-radius:8px;padding:.55rem .9rem;margin-bottom:.15rem;display:flex;align-items:center;gap:.55rem;color:var(--muted)!important;font-size:.88rem;transition:all .15s}
+    .sidebar .nav-link:hover{background:var(--bg3);color:var(--text)!important}
+    .sidebar .nav-link.active{background:rgba(56,189,248,.12);color:var(--accent)!important;font-weight:600}
+    .sidebar .nav-link i{font-size:1rem;width:18px;text-align:center}
+    .sidebar-section{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);padding:.5rem .9rem .2rem;margin-top:.5rem}
+    /* Cards */
+    .card{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px}
+    .card-header{background:rgba(255,255,255,.03);border-bottom:1px solid var(--bg3);border-radius:12px 12px 0 0!important;padding:.5rem 1rem}
+    /* Stat cards */
+    .stat-card{border-radius:12px;background:var(--bg2);border:1px solid var(--bg3);padding:1.1rem 1.25rem;transition:border-color .2s}
+    .stat-card:hover{border-color:var(--bg4)}
+    .stat-card .value{font-size:1.9rem;font-weight:700;line-height:1.1;color:var(--accent)}
+    .stat-card .label{color:var(--muted);font-size:.78rem;margin-top:.15rem}
+    .stat-card .sublabel{color:var(--muted2);font-size:.7rem}
+    /* Tables */
+    .table{color:var(--text);font-size:.85rem}
+    .table thead th{background:rgba(255,255,255,.03);color:var(--muted);border-color:var(--bg3);font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;padding:.5rem .75rem}
+    .table td{border-color:var(--bg3);vertical-align:middle;padding:.5rem .75rem}
+    .table tbody tr:hover{background:rgba(255,255,255,.02)}
+    /* Trend cards */
+    .trend-card{border-radius:12px;padding:1.1rem 1.2rem;border:1px solid var(--bg3);background:var(--bg2);transition:border-color .2s,box-shadow .2s}
+    .trend-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.3)}
+    .trend-card.growth{border-left:3px solid var(--success)}
+    .trend-card.decline{border-left:3px solid var(--danger)}
+    .trend-card.stable{border-left:3px solid var(--muted2)}
+    /* Buttons */
+    .btn-primary{background:var(--accent);border-color:var(--accent);color:#0f172a;font-weight:600}
+    .btn-primary:hover{background:#7dd3fc;border-color:#7dd3fc;color:#0f172a}
+    .btn-outline-secondary{border-color:var(--bg3);color:var(--muted)}
+    .btn-outline-secondary:hover{background:var(--bg3);color:var(--text);border-color:var(--bg3)}
+    /* Badges */
+    .badge-growth{background:rgba(74,222,128,.12);color:var(--success);border:1px solid rgba(74,222,128,.25)}
+    .badge-decline{background:rgba(248,113,113,.12);color:var(--danger);border:1px solid rgba(248,113,113,.25)}
+    .badge-stable{background:rgba(148,163,184,.08);color:var(--muted);border:1px solid var(--bg3)}
+    .badge-ai{background:rgba(129,140,248,.12);color:var(--accent2);border:1px solid rgba(129,140,248,.25)}
+    /* Forms */
+    .form-control,.form-select{background:var(--bg3);border-color:var(--bg3);color:var(--text);font-size:.88rem}
+    .form-control:focus,.form-select:focus{background:var(--bg3);border-color:var(--accent);color:var(--text);box-shadow:0 0 0 2px rgba(56,189,248,.15)}
+    .form-label{color:var(--muted);font-size:.8rem;margin-bottom:.3rem}
+    /* Alerts */
+    .alert-success{background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.25);color:var(--success)}
+    .alert-danger{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.25);color:var(--danger)}
+    .alert-warning{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.25);color:var(--warn)}
+    .alert-info{background:rgba(56,189,248,.08);border-color:rgba(56,189,248,.25);color:var(--info)}
+    /* Keyword chips */
+    .kw-chip{display:inline-block;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);color:var(--accent);border-radius:20px;padding:.18rem .65rem;font-size:.78rem;margin:.12rem}
+    /* Sentiment bar */
+    .sent-bar{height:6px;border-radius:3px;overflow:hidden;display:flex;background:var(--bg3)}
+    .sent-bar .pos{background:var(--success)}
+    .sent-bar .neg{background:var(--danger)}
+    /* AI block */
+    .ai-block{background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.2);border-radius:8px;padding:.65rem .85rem;font-size:.8rem;color:var(--text)}
+    /* Scrollbar */
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:var(--bg2)}
+    ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+    /* Page header */
+    .page-header{border-bottom:1px solid var(--bg3);padding-bottom:.75rem;margin-bottom:1.5rem}
+    /* Metric row */
+    .metric-val{font-size:1.05rem;font-weight:700;color:var(--accent)}
+    .metric-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg d-flex justify-content-between">
+  <a class="navbar-brand" href="/"><i class="bi bi-telegram me-2"></i>TG Analyzer</a>
+  <div class="d-flex align-items-center gap-2">
+    {% if telethon_mode %}
+    <span class="nav-mode-badge" style="background:rgba(52,211,153,.1);color:var(--accent3);border-color:rgba(52,211,153,.3)">
+      <i class="bi bi-lightning-fill me-1"></i>Telethon API
+    </span>
+    {% else %}
+    <span class="nav-mode-badge" style="background:rgba(148,163,184,.1);color:var(--muted);border-color:var(--bg3)">
+      <i class="bi bi-globe me-1"></i>HTML парсер
+    </span>
+    {% endif %}
+    {% if gemini_mode %}
+    <span class="nav-mode-badge" style="background:rgba(129,140,248,.1);color:var(--accent2);border-color:rgba(129,140,248,.3)">
+      <i class="bi bi-stars me-1"></i>Gemini AI
+    </span>
+    {% endif %}
+  </div>
+</nav>
+
+<div class="d-flex">
+  <!-- Sidebar -->
+  <div class="sidebar d-none d-md-flex flex-column flex-shrink-0">
+    <div class="sidebar-section">Аналитика</div>
+    <nav class="nav flex-column">
+      <a class="nav-link {% if request.path=='/' %}active{% endif %}" href="/"><i class="bi bi-speedometer2"></i>Дашборд</a>
+      <a class="nav-link {% if '/topics' in request.path %}active{% endif %}" href="/topics"><i class="bi bi-tags"></i>Темы и слова</a>
+      <a class="nav-link {% if '/trends' in request.path %}active{% endif %}" href="/trends"><i class="bi bi-graph-up-arrow"></i>Тренды</a>
+      <a class="nav-link {% if '/interests' in request.path %}active{% endif %}" href="/interests"><i class="bi bi-people"></i>Интересы</a>
+    </nav>
+    <div class="sidebar-section">Данные</div>
+    <nav class="nav flex-column">
+      <a class="nav-link {% if '/channels' in request.path %}active{% endif %}" href="/channels"><i class="bi bi-broadcast"></i>Каналы</a>
+      <a class="nav-link {% if '/export' in request.path %}active{% endif %}" href="/export"><i class="bi bi-download"></i>Экспорт</a>
+      <a class="nav-link {% if '/about' in request.path %}active{% endif %}" href="/about"><i class="bi bi-info-circle"></i>О проекте</a>
+    </nav>
+    <div class="mt-auto pt-3">
+      <a class="nav-link" style="color:var(--warn)!important" href="/collect/all">
+        <i class="bi bi-arrow-repeat"></i>Собрать сейчас
+      </a>
+      <a class="nav-link" style="color:var(--accent2)!important" href="/trends/run">
+        <i class="bi bi-lightning"></i>Обновить тренды
+      </a>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="flex-grow-1 p-4" style="min-width:0">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} alert-dismissible fade show py-2 mb-3" role="alert">
+        {{ msg }}<button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

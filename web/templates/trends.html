@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Тренды — TG Analyzer{% endblock %}
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h4 class="mb-0"><i class="bi bi-graph-up-arrow me-2 text-info"></i>Прогноз трендов</h4>
+    <small class="text-muted">Анализ по последним сообщениям · обновляется мгновенно после сбора</small>
+  </div>
+  <a href="/trends/run" class="btn btn-primary btn-sm"><i class="bi bi-lightning me-1"></i>Пересчитать</a>
+</div>
+
+{% if predictions %}
+<div class="row g-3">
+  {% for p in predictions %}
+  {% set dir = p.direction %}
+  <div class="col-md-6 col-xl-4">
+    <div class="trend-card {{ dir }} h-100 d-flex flex-column">
+
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div>
+          <h6 class="mb-0 fw-bold" style="font-size:.95rem">{{ p.topic }}</h6>
+          <span class="text-muted" style="font-size:.7rem">{{ p.total_messages or p.mention_count }} сообщений проанализировано</span>
+        </div>
+        {% if dir=='growth' %}<span class="badge badge-growth px-2 py-1">📈 Рост</span>
+        {% elif dir=='decline' %}<span class="badge badge-decline px-2 py-1">📉 Спад</span>
+        {% else %}<span class="badge badge-stable px-2 py-1">➡️ Стабильно</span>{% endif %}
+      </div>
+
+      <!-- 24h forecast -->
+      <div class="mb-2 d-flex flex-wrap gap-1">
+        <span class="badge badge-ai">{{ p.forecast_24h or '➡️ Стабильно' }}</span>
+        {% if p.influencer_count %}
+        <span class="badge" style="background:rgba(251,191,36,.1);color:var(--warn);border:1px solid rgba(251,191,36,.25)">
+          ⭐ {{ p.influencer_count }} крупных
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Metrics grid -->
+      <div class="row g-0 mb-2 text-center" style="background:rgba(0,0,0,.2);border-radius:8px;padding:.5rem 0">
+        <div class="col-3">
+          <div class="metric-val">{{ p.mention_count }}</div>
+          <div class="metric-lbl">свежих</div>
+        </div>
+        <div class="col-3">
+          <div class="metric-val" style="color:var(--accent2)">{{ "%.0f"|format(p.avg_views or 0) }}</div>
+          <div class="metric-lbl">просмотры</div>
+        </div>
+        <div class="col-3">
+          <div class="metric-val" style="color:var(--warn)">{{ "%.1f"|format(p.avg_reactions or 0) }}</div>
+          <div class="metric-lbl">реакции</div>
+        </div>
+        <div class="col-3">
+          {% set pos=p.sentiment_pos_pct or 0 %}{% set neg=p.sentiment_neg_pct or 0 %}
+          {% if pos > neg and pos > 30 %}
+            <div class="metric-val" style="color:var(--success)">😊</div>
+            <div class="metric-lbl">{{ pos|round|int }}% +</div>
+          {% elif neg > pos and neg > 30 %}
+            <div class="metric-val" style="color:var(--danger)">😠</div>
+            <div class="metric-lbl">{{ neg|round|int }}% −</div>
+          {% else %}
+            <div class="metric-val" style="color:var(--muted)">😐</div>
+            <div class="metric-lbl">нейтр.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Sentiment bar -->
+      {% set pos=p.sentiment_pos_pct or 0 %}{% set neg=p.sentiment_neg_pct or 0 %}
+      {% set neu=[0,100-pos-neg]|max %}
+      <div class="mb-1" title="😊 {{ pos }}%  😐 {{ neu }}%  😠 {{ neg }}%">
+        <div class="sent-bar mb-1">
+          <div class="pos" style="width:{{ pos }}%"></div>
+          <div class="neg" style="width:{{ neg }}%"></div>
+          <div style="width:{{ neu }}%;background:var(--bg3)"></div>
+        </div>
+        <div class="d-flex justify-content-between" style="font-size:.63rem;color:var(--muted)">
+          <span style="color:var(--success)">+{{ pos|round|int }}%</span>
+          <span>нейтр. {{ neu|round|int }}%</span>
+          <span style="color:var(--danger)">-{{ neg|round|int }}%</span>
+        </div>
+      </div>
+
+      <!-- AI reason -->
+      {% if p.ai_reason %}
+      <div class="ai-block mb-2">
+        <div class="d-flex align-items-center gap-1 mb-1">
+          <i class="bi bi-stars" style="color:var(--accent2);font-size:.8rem"></i>
+          <span style="font-size:.65rem;color:var(--accent2);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Gemini AI</span>
+        </div>
+        {{ p.ai_reason }}
+      </div>
+      {% endif %}
+
+      <!-- Rule reason -->
+      <div class="text-muted mb-2" style="font-size:.73rem;line-height:1.4">
+        <i class="bi bi-info-circle me-1"></i>{{ p.reason }}
+      </div>
+
+      <!-- Chart -->
+      {% if charts.get(p.topic) %}
+      <div class="mt-auto">
+        <img src="data:image/png;base64,{{ charts[p.topic] }}" class="img-fluid w-100" style="border-radius:6px"/>
+      </div>
+      {% endif %}
+
+      <div class="text-muted mt-2" style="font-size:.62rem">
+        <i class="bi bi-clock me-1"></i>{{ p.predicted_at }}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-graph-up" style="font-size:3rem;opacity:.3"></i>
+    <h5 class="mt-3">Нет прогнозов</h5>
+    <p class="mb-3">Соберите данные — тренды рассчитываются мгновенно.</p>
+    <a href="/collect/all" class="btn btn-primary me-2"><i class="bi bi-arrow-repeat me-1"></i>Собрать сейчас</a>
+    <a href="/trends/run" class="btn btn-outline-secondary"><i class="bi bi-lightning me-1"></i>Пересчитать</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

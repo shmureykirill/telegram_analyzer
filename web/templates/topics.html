@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Темы — TG Analyzer{% endblock %}
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <h4 class="mb-0"><i class="bi bi-tags me-2 text-info"></i>Темы и ключевые слова</h4>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label small text-muted mb-1">Период</label>
+        <select class="form-select form-select-sm" name="period">
+          {% for val,label in [('1d','1 день'),('3d','3 дня'),('7d','7 дней'),('30d','30 дней')] %}
+          <option value="{{ val }}" {% if period==val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label small text-muted mb-1">Канал</label>
+        <select class="form-select form-select-sm" name="channel">
+          <option value="">Все</option>
+          {% for ch in channels %}
+          <option value="{{ ch.username }}" {% if channel==ch.username %}selected{% endif %}>@{{ ch.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Применить</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Topic stats table -->
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">ЧАСТОТА ТЕМ + ТОНАЛЬНОСТЬ</small></div>
+      {% if topic_stats %}
+      <table class="table mb-0" style="font-size:.82rem">
+        <thead><tr><th>Тема</th><th>Сообщ.</th><th>Ср.просм.</th><th>Тональность</th></tr></thead>
+        <tbody>
+          {% for s in topic_stats %}
+          <tr>
+            <td class="fw-semibold">{{ s.topic }}</td>
+            <td>{{ s.msg_count }}</td>
+            <td class="text-muted">{{ "%.0f"|format(s.avg_views or 0) }}</td>
+            <td>
+              {% set pos=s.pos_pct or 0 %}{% set neg=s.neg_pct or 0 %}{% set neu=[0,100-pos-neg]|max %}
+              <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;width:80px" title="{{ pos }}%+ / {{ neg }}%−">
+                <div style="width:{{ pos }}%;background:var(--success)"></div>
+                <div style="width:{{ neg }}%;background:var(--danger)"></div>
+                <div style="width:{{ neu }}%;background:var(--bg3)"></div>
+              </div>
+              <span style="font-size:.65rem;color:var(--muted)">{{ pos }}%+ {{ neg }}%−</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="card-body text-center text-muted py-4"><i class="bi bi-tags fs-2"></i><br>Нет данных за период</div>
+      {% endif %}
+    </div>
+
+    <!-- Top emoji reactions -->
+    {% if top_reactions %}
+    <div class="card mb-3">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">ТОП ЭМОДЗИ-РЕАКЦИЙ</small></div>
+      <div class="card-body p-2">
+        <div class="d-flex flex-wrap gap-2">
+          {% for r in top_reactions %}
+          <div class="text-center" style="min-width:48px">
+            <div style="font-size:1.4rem">{{ r.emoji }}</div>
+            <div class="text-muted" style="font-size:.7rem">{{ r.count }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if bar_chart %}
+    <div class="card">
+      <div class="card-body p-2 text-center">
+        <img src="data:image/png;base64,{{ bar_chart }}" class="img-fluid" style="border-radius:8px"/>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Keywords & n-grams -->
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">ТОП-50 КЛЮЧЕВЫХ СЛОВ</small></div>
+      <div class="card-body">
+        {% if keywords %}
+          {% for kw,cnt in keywords %}
+          <span class="kw-chip">{{ kw }} <span style="opacity:.6">{{ cnt }}</span></span>
+          {% endfor %}
+        {% else %}<span class="text-muted">Нет данных</span>{% endif %}
+      </div>
+    </div>
+    <div class="row g-3">
+      <div class="col-6">
+        <div class="card">
+          <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">БИГРАММЫ</small></div>
+          <div class="card-body p-2">
+            {% if bigrams %}
+            <table class="table table-sm mb-0">
+              {% for ng,cnt in bigrams %}<tr><td class="text-info small">{{ ng }}</td><td class="text-muted small">{{ cnt }}</td></tr>{% endfor %}
+            </table>
+            {% else %}<span class="text-muted small p-2">Нет данных</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="card">
+          <div class="card-header py-2 px-3"><small class="fw-semibold text-muted">ТРИГРАММЫ</small></div>
+          <div class="card-body p-2">
+            {% if trigrams %}
+            <table class="table table-sm mb-0">
+              {% for ng,cnt in trigrams %}<tr><td class="text-info small">{{ ng }}</td><td class="text-muted small">{{ cnt }}</td></tr>{% endfor %}
+            </table>
+            {% else %}<span class="text-muted small p-2">Нет данных</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+[
+  {
+    "username": "durov",
+    "title": "Pavel Durov",
+    "type": "channel"
+  },
+  {
+    "username": "telegram",
+    "title": "Telegram News",
+    "type": "channel"
+  }
+]
