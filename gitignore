@@ -1,0 +1,91 @@
+# ─────────────────────────────────────────────
+#  Telegram Analyzer — .gitignore
+# ─────────────────────────────────────────────
+
+# ── Секреты и ключи ───────────────────────────
+.env
+*.session           # Telethon session file (содержит токен авторизации!)
+*.session-journal
+
+# ── База данных ───────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── Экспорты и логи ───────────────────────────
+exports/
+logs/
+
+# ── Python ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+MANIFEST
+
+# ── Виртуальные окружения ─────────────────────
+venv/
+.venv/
+env/
+.env.local
+ENV/
+env.bak/
+venv.bak/
+
+# ── PyCharm / JetBrains ───────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+
+# ── VS Code ───────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ── Jupyter ───────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── macOS ─────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Windows ───────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ── Linux ─────────────────────────────────────
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ── Тесты и покрытие ──────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+*.cover
+
+# ── Временные файлы ───────────────────────────
+*.tmp
+*.bak
+*.swp
+*.swo
